@@ -1,19 +1,25 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MapPin, PackagePlus, RefreshCw, Send, Tag } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { apiRequest } from "../../lib/api";
 
 type Listing = { id: string; is_mine: boolean; category_code: string; quantity_grams: number; condition?: string; description?: string; status: string; created_at: string; offer_count: number; pickup_address?: string | null };
 type Offer = { id: string; recycler_id: string; price_minor_per_kg: number; pickup_fee_minor: number; proposed_pickup_at?: string | null; notes?: string | null; status: string };
+type ImageListingDraft = { category_code: string; classification_id?: string; image_name?: string };
 
 export default function Marketplace({ activeRole }: { activeRole: string }) {
   const qc = useQueryClient();
-  const [category, setCategory] = useState("paper");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const imageDraft = (location.state as { imageListingDraft?: ImageListingDraft } | null)?.imageListingDraft;
+  const [category, setCategory] = useState(imageDraft?.category_code ?? "paper");
   const [quantity, setQuantity] = useState("1000");
   const [address, setAddress] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(imageDraft ? `Created from photo: ${imageDraft.image_name ?? "waste image"}` : "");
+  const [classificationId, setClassificationId] = useState(imageDraft?.classification_id);
   const [price, setPrice] = useState("2500");
   const [fee, setFee] = useState("0");
   const [selected, setSelected] = useState<string | null>(null);
@@ -21,7 +27,7 @@ export default function Marketplace({ activeRole }: { activeRole: string }) {
   const listings = useQuery({ queryKey: ["listings"], queryFn: () => apiRequest<Listing[]>("/api/v1/listings") });
   const offers = useQuery({ queryKey: ["offers", selected], enabled: Boolean(selected) && activeRole !== "RECYCLER", queryFn: () => apiRequest<Offer[]>(`/api/v1/listings/${selected}/offers`) });
   const refresh = async () => { await qc.invalidateQueries({ queryKey: ["listings"] }); await qc.invalidateQueries({ queryKey: ["offers"] }); await qc.invalidateQueries({ queryKey: ["collections"] }); };
-  const createListing = useMutation({ mutationFn: () => apiRequest<Listing>("/api/v1/listings", { method: "POST", body: JSON.stringify({ category_code: category, quantity_grams: Number(quantity), pickup_address: address, location: { latitude: Number(latitude), longitude: Number(longitude) }, description }) }), onSuccess: async () => { setNotice("Listing created. Pickup address remains private until a recycler offer is accepted."); setAddress(""); setDescription(""); await refresh(); }, onError: (e) => setNotice(e instanceof Error ? e.message : "Could not create listing") });
+  const createListing = useMutation({ mutationFn: () => apiRequest<Listing>("/api/v1/listings", { method: "POST", body: JSON.stringify({ category_code: category, quantity_grams: Number(quantity), pickup_address: address, location: { latitude: Number(latitude), longitude: Number(longitude) }, description, ...(classificationId ? { classification_id: classificationId } : {}) }) }), onSuccess: async () => { setNotice("Listing created and saved. Your open listings have been refreshed; pickup address stays private until an offer is accepted."); setAddress(""); setDescription(""); setClassificationId(undefined); navigate("/marketplace", { replace: true, state: null }); await refresh(); }, onError: (e) => setNotice(e instanceof Error ? e.message : "Could not create listing") });
   const submitOffer = useMutation({ mutationFn: (id: string) => apiRequest(`/api/v1/listings/${id}/offers`, { method: "POST", body: JSON.stringify({ price_minor_per_kg: Number(price), pickup_fee_minor: Number(fee) }) }), onSuccess: async () => { setNotice("Offer submitted and persisted."); await refresh(); }, onError: (e) => setNotice(e instanceof Error ? e.message : "Could not submit offer") });
   const acceptOffer = useMutation({ mutationFn: (id: string) => apiRequest(`/api/v1/offers/${id}/accept`, { method: "POST" }), onSuccess: async () => { setNotice("Offer accepted. A collection request has been created."); setSelected(null); await refresh(); }, onError: (e) => setNotice(e instanceof Error ? e.message : "Could not accept offer") });
   const recyclerMode = activeRole === "RECYCLER";
@@ -31,7 +37,7 @@ export default function Marketplace({ activeRole }: { activeRole: string }) {
   return <div className="mx-auto max-w-5xl space-y-6">
     <header><p className="text-xs font-bold uppercase tracking-widest text-leaf">Circular materials exchange</p><h2 className="mt-2 text-2xl font-semibold text-ink">{recyclerMode ? "Find collection requests" : "Marketplace"}</h2><p className="mt-2 text-sm leading-6 text-slate-600">Indicative offers are recorded in INR minor units per kilogram. Pickup addresses are private until an offer is accepted.</p></header>
     {notice && <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{notice}</div>}
-    {!recyclerMode && <section className="rounded-xl border border-slate-200 bg-white p-6"><h3 className="flex items-center gap-2 font-semibold"><PackagePlus size={18} className="text-leaf"/>Create a waste listing</h3><p className="mt-1 text-sm text-slate-500">Enter approximate quantity; a photograph is not a weighing device.</p><form onSubmit={e=>{e.preventDefault();setNotice("");createListing.mutate();}} className="mt-5 grid gap-4 sm:grid-cols-2">
+    {!recyclerMode && <section className="rounded-xl border border-slate-200 bg-white p-6"><h3 className="flex items-center gap-2 font-semibold"><PackagePlus size={18} className="text-leaf"/>{imageDraft ? "Create listing from image" : "Create a waste listing"}</h3><p className="mt-1 text-sm text-slate-500">{imageDraft ? `We carried over ${category} from your image review. Confirm the material and enter the pickup details.` : "Enter approximate quantity; a photograph is not a weighing device."}</p><form onSubmit={e=>{e.preventDefault();setNotice("");createListing.mutate();}} className="mt-5 grid gap-4 sm:grid-cols-2">
       <label className="text-sm font-medium">Material<select value={category} onChange={e=>setCategory(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2">{["plastic","paper","metal","glass","organic","textile","electronics","other"].map(x=><option key={x}>{x}</option>)}</select></label>
       <label className="text-sm font-medium">Approximate mass (grams)<input required type="number" min="1" max="1000000000" value={quantity} onChange={e=>setQuantity(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2"/></label>
       <label className="text-sm font-medium sm:col-span-2">Pickup address<input required minLength={5} value={address} onChange={e=>setAddress(e.target.value)} placeholder="Visible to accepted recycler only" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2"/></label>
