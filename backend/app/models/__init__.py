@@ -1,0 +1,65 @@
+from app.models.audit import AuditLog
+from app.models.bins import BinAlert, BinCollectionEvent, BinSensorReading, SmartBin
+from app.models.classification import ClassificationFeedback, WasteClassification
+from app.models.identity import (
+    RecyclerAcceptedCategory,
+    RecyclerProfile,
+    RecyclerServiceArea,
+    Role,
+    User,
+    UserLocation,
+    UserProfile,
+    UserRole,
+    WasteCategory,
+)
+from app.models.marketplace import (
+    CollectionRequest,
+    CollectionStatusHistory,
+    Notification,
+    RecyclerOffer,
+    RoutePlan,
+    RouteStop,
+    WasteListing,
+)
+from app.models.recovery import (
+    InventoryLedgerEntry,
+    InventoryLot,
+    MaterialTransaction,
+    ProcessingBatch,
+    ProcessingInput,
+    RecoveredMaterial,
+    TransactionStatusEvent,
+)
+
+__all__ = [
+    "RecyclerAcceptedCategory",
+    "RecyclerProfile",
+    "RecyclerServiceArea",
+    "Role",
+    "User",
+    "UserLocation",
+    "UserProfile",
+    "UserRole",
+    "WasteCategory",
+    "WasteClassification",
+    "ClassificationFeedback",
+    "WasteListing",
+    "RecyclerOffer",
+    "CollectionRequest",
+    "CollectionStatusHistory",
+    "Notification",
+    "RoutePlan",
+    "RouteStop",
+    "InventoryLot",
+    "InventoryLedgerEntry",
+    "ProcessingBatch",
+    "ProcessingInput",
+    "RecoveredMaterial",
+    "MaterialTransaction",
+    "TransactionStatusEvent",
+    "SmartBin",
+    "BinSensorReading",
+    "BinAlert",
+    "BinCollectionEvent",
+    "AuditLog",
+]

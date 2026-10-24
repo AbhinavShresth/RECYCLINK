@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-recyclink}
+      POSTGRES_USER: ${POSTGRES_USER:-recyclink}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-only-change-me}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - recyclink-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recyclink} -d ${POSTGRES_DB:-recyclink}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  recyclink-postgres:

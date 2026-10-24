@@ -1,0 +1,18 @@
+{
+  "version": "recyclink-waste-v1",
+  "classes": ["plastic", "paper", "metal", "glass", "organic", "textile", "electronics", "other"],
+  "dataset_directory_mapping": {
+    "plastic": ["plastic"],
+    "paper": ["paper", "cardboard"],
+    "metal": ["metal"],
+    "glass": ["glass"],
+    "organic": ["organic", "food_waste"],
+    "textile": ["textile", "cloth"],
+    "electronics": ["electronics", "e_waste"],
+    "other": ["other", "trash"]
+  },
+  "source_notes": {
+    "trashnet": "TrashNet labels cardboard and paper are intentionally grouped into application class paper; its trash label is only a candidate mapping to other. TrashNet does not provide organic, textile, or electronics coverage. Verify dataset license and labels before use.",
+    "taco": "TACO provides litter instance annotations, not these eight direct image-level classes. Create and review a versioned annotation conversion before using it; no automatic mapping is asserted here. Verify license and attribution requirements before use."
+  }
+}
